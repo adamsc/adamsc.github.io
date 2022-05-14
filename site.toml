@@ -9,15 +9,3 @@ name = "site"
 # This page should be the root of your website. It's important.
 page = "https://romantic-peripheral-720.notion.site/Adam-Schnitzer-878fc94cec3a4bf7bc9eb914f565fb98"
 
-[site] 
-  [[site.inject.head.script]]
-  src = "https://www.googletagmanager.com/gtag/js?id=UA-5990359-3"
-  
-  [[site.inject.head.script]]
-  inner_html="""
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-
-    gtag('config', 'UA-5990359-3');
-  """
