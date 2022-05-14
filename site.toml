@@ -13,3 +13,16 @@ page = "https://romantic-peripheral-720.notion.site/Adam-Schnitzer-878fc94cec3a4
   [[site.inject.head.script]]
   type="text/javascript"
   src="/ga.js"
+  
+  [[site.inject.head.script]]
+  inner_html="""
+  <!-- Global site tag (gtag.js) - Google Analytics -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=UA-5990359-3"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'UA-5990359-3');
+  </script>
+  """
