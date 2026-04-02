@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex">
+    <title>Portfolio Rebalancer</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>A</text></svg>">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #37352f;
+            background-color: #f7f6f3;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
+
+        .container {
+            max-width: 720px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+            overflow: hidden;
+        }
+
+        .cover {
+            background-color: #f1f1ef;
+            padding: 3.5rem 4rem 2.5rem;
+        }
+
+        .cover h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.25rem;
+        }
+
+        .cover .subtitle {
+            color: #9b9a97;
+            font-size: 1rem;
+        }
+
+        .content {
+            padding: 2rem 4rem 3rem;
+        }
+
+        /* Form */
+        .col-headers {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.35rem;
+            padding-right: calc(1.5rem + 0.5rem);
+        }
+
+        .col-headers span {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9b9a97;
+            font-weight: 600;
+        }
+
+        .col-headers .col-symbol { flex: 1.2; }
+        .col-headers .col-shares { flex: 1; }
+        .col-headers .col-price  { flex: 1; }
+        .col-headers .col-target { flex: 0.8; }
+
+        .holding-row {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+            align-items: center;
+        }
+
+        .holding-row input {
+            font-family: inherit;
+            font-size: 0.9rem;
+            padding: 0.4rem 0.5rem;
+            border: 1px solid rgba(55,53,47,0.16);
+            border-radius: 3px;
+            color: #37352f;
+            background: white;
+            outline: none;
+            transition: border-color 0.15s;
+            min-width: 0;
+        }
+
+        .holding-row input:focus {
+            border-color: #37352f;
+        }
+
+        .holding-row .sym  { flex: 1.2; }
+        .holding-row .sh   { flex: 1; }
+        .holding-row .pr   { flex: 1; }
+        .holding-row .tgt  { flex: 0.8; }
+
+        .remove-btn {
+            background: none;
+            border: none;
+            color: #9b9a97;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 0 0.25rem;
+            line-height: 1;
+            flex-shrink: 0;
+            width: 1.5rem;
+            text-align: center;
+        }
+
+        .remove-btn:hover { color: #e03e3e; }
+
+        .add-row-btn, .rebalance-btn {
+            font-family: inherit;
+            font-size: 0.9rem;
+            padding: 0.45rem 1rem;
+            border-radius: 3px;
+            cursor: pointer;
+            border: none;
+        }
+
+        .add-row-btn {
+            background: none;
+            border: 1px solid rgba(55,53,47,0.16);
+            color: #37352f;
+            margin-top: 0.25rem;
+        }
+
+        .add-row-btn:hover { background: #f7f6f3; }
+
+        .cashflow-section {
+            margin-top: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .cashflow-section label {
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9b9a97;
+            font-weight: 600;
+            margin-bottom: 0.35rem;
+        }
+
+        .cashflow-section input {
+            font-family: inherit;
+            font-size: 0.9rem;
+            padding: 0.4rem 0.5rem;
+            border: 1px solid rgba(55,53,47,0.16);
+            border-radius: 3px;
+            color: #37352f;
+            width: 200px;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        .cashflow-section input:focus { border-color: #37352f; }
+
+        .cashflow-section .helper {
+            font-size: 0.8rem;
+            color: #9b9a97;
+            margin-top: 0.3rem;
+        }
+
+        .rebalance-btn {
+            background: #37352f;
+            color: white;
+            font-weight: 500;
+        }
+
+        .rebalance-btn:hover { opacity: 0.9; }
+
+        /* Error */
+        .error {
+            background: #fdf0ef;
+            border: 1px solid #e8d5d3;
+            color: #c4554d;
+            padding: 0.6rem 0.8rem;
+            border-radius: 3px;
+            font-size: 0.9rem;
+            margin-top: 1.5rem;
+        }
+
+        /* Results */
+        .results {
+            margin-top: 1.5rem;
+        }
+
+        .results h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+        }
+
+        .results h3 {
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin-top: 1.25rem;
+            margin-bottom: 0.4rem;
+        }
+
+        .results .line {
+            font-size: 0.9rem;
+            padding: 0.15rem 0;
+        }
+
+        .results .indent {
+            padding-left: 1rem;
+        }
+
+        .buy  { color: #0f7b0f; }
+        .sell { color: #c4554d; }
+
+        @media (max-width: 600px) {
+            body { padding: 0; }
+
+            .container {
+                border-radius: 0;
+                box-shadow: none;
+            }
+
+            .cover { padding: 2.5rem 1.5rem 2rem; }
+            .cover h1 { font-size: 2rem; }
+            .content { padding: 1.5rem 1.5rem 2rem; }
+
+            .col-headers { display: none; }
+
+            .holding-row {
+                flex-wrap: wrap;
+            }
+
+            .holding-row input {
+                min-width: 0;
+            }
+
+            .holding-row .sym,
+            .holding-row .sh { flex: 1 1 45%; }
+
+            .holding-row .pr,
+            .holding-row .tgt { flex: 1 1 40%; }
+
+            .cashflow-section input { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="cover">
+            <h1>Portfolio Rebalancer</h1>
+            <p class="subtitle">Direction-aware rebalancing calculator</p>
+        </header>
+        <main class="content">
+            <div class="col-headers">
+                <span class="col-symbol">Symbol</span>
+                <span class="col-shares">Shares</span>
+                <span class="col-price">Price</span>
+                <span class="col-target">Target %</span>
+            </div>
+            <div id="rows"></div>
+            <button class="add-row-btn" onclick="addRow()">+ Add Row</button>
+
+            <div class="cashflow-section">
+                <label for="cashflow">Cash Flow ($)</label>
+                <input type="number" id="cashflow" step="any" placeholder="0.00">
+                <div class="helper">Positive = deposit (buy only). Negative = withdraw (sell only).</div>
+            </div>
+
+            <button class="rebalance-btn" onclick="run()">Rebalance</button>
+
+            <div id="output"></div>
+        </main>
+    </div>
+
+    <script>
+        const rowsDiv = document.getElementById('rows');
+
+        function addRow(sym, sh, pr, tgt) {
+            const row = document.createElement('div');
+            row.className = 'holding-row';
+            row.innerHTML =
+                '<input class="sym" type="text" placeholder="VTI" value="' + (sym || '') + '">' +
+                '<input class="sh" type="number" step="any" placeholder="0" value="' + (sh != null ? sh : '') + '">' +
+                '<input class="pr" type="number" step="any" placeholder="0.00" value="' + (pr != null ? pr : '') + '">' +
+                '<input class="tgt" type="number" step="any" placeholder="25" value="' + (tgt != null ? tgt : '') + '">' +
+                '<button class="remove-btn" onclick="this.parentElement.remove()" title="Remove">\u00d7</button>';
+            row.querySelector('.sym').addEventListener('blur', function () {
+                this.value = this.value.toUpperCase().trim();
+            });
+            rowsDiv.appendChild(row);
+        }
+
+        addRow('VTI', null, null, 75); addRow('VXUS', null, null, 25);
+
+        function fmt(v) {
+            return v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+        }
+
+        function pct(v) {
+            return (v * 100).toFixed(2) + '%';
+        }
+
+        function run() {
+            const out = document.getElementById('output');
+            out.innerHTML = '';
+
+            // Parse rows
+            const rows = rowsDiv.querySelectorAll('.holding-row');
+            const symbols = [], holdings = {}, prices = {}, target = {};
+            let hasData = false;
+
+            for (const r of rows) {
+                const s = r.querySelector('.sym').value.toUpperCase().trim();
+                const sh = r.querySelector('.sh').value;
+                const pr = r.querySelector('.pr').value;
+                const tg = r.querySelector('.tgt').value;
+                if (!s && !sh && !pr && !tg) continue;
+                if (!s) return showErr('Symbol is required for all rows.');
+                if (symbols.includes(s)) return showErr('Duplicate symbol: ' + s);
+                if (sh === '' || pr === '' || tg === '') return showErr('All fields required for ' + s + '.');
+                const shN = parseFloat(sh), prN = parseFloat(pr), tgN = parseFloat(tg);
+                if (prN <= 0) return showErr('Price must be positive for ' + s + '.');
+                if (tgN < 0) return showErr('Target % cannot be negative for ' + s + '.');
+                symbols.push(s);
+                holdings[s] = shN;
+                prices[s] = prN;
+                target[s] = tgN / 100;
+                hasData = true;
+            }
+
+            if (!hasData) return showErr('Enter at least one holding.');
+
+            const wSum = Object.values(target).reduce((a, b) => a + b, 0);
+            if (Math.abs(wSum - 1.0) > 0.001) return showErr('Target weights sum to ' + (wSum * 100).toFixed(1) + '%, must be 100%.');
+
+            const cfInput = document.getElementById('cashflow').value;
+            if (cfInput === '') return showErr('Cash flow is required.');
+            const cashFlow = parseFloat(cfInput);
+
+            // Current values
+            const curVal = {}, curWt = {};
+            let totalNow = 0;
+            for (const s of symbols) {
+                curVal[s] = holdings[s] * prices[s];
+                totalNow += curVal[s];
+            }
+            for (const s of symbols) curWt[s] = curVal[s] / totalNow;
+
+            const totalGoal = totalNow + cashFlow;
+            if (totalGoal <= 0) return showErr('Cash flow too negative — portfolio would be wiped out.');
+
+            if (cashFlow === 0) return showErr('Cash flow is zero — no trades to make.');
+
+            // Raw share diffs
+            const rawSh = {};
+            for (const s of symbols) rawSh[s] = (target[s] * totalGoal - curVal[s]) / prices[s];
+
+            // Direction filter
+            const wantBuy = cashFlow > 0;
+            const tradesDir = {};
+            for (const s of symbols) {
+                const q = rawSh[s];
+                if (wantBuy && q > 0) tradesDir[s] = Math.floor(q);
+                else if (!wantBuy && q < 0) tradesDir[s] = Math.ceil(q);
+                else tradesDir[s] = 0;
+            }
+
+            // Check if any trades
+            const allZero = symbols.every(s => tradesDir[s] === 0);
+
+            let trades = {};
+            if (allZero) {
+                for (const s of symbols) trades[s] = 0;
+            } else {
+                // Scale trades
+                const cashNeeded = Math.abs(cashFlow);
+                let dirCash = 0;
+                for (const s of symbols) dirCash += tradesDir[s] * prices[s];
+
+                const scale = dirCash > 0 ? cashNeeded / dirCash : 1.0;
+
+                for (const s of symbols) {
+                    const q = tradesDir[s];
+                    if (q === 0) { trades[s] = 0; continue; }
+                    const qScaled = Math.abs(q) * scale;
+                    const qFinal = q < 0 ? Math.ceil(qScaled) : Math.floor(qScaled);
+                    trades[s] = q < 0 ? -qFinal : qFinal;
+                }
+            }
+
+            // New holdings
+            const newHold = {}, newVal = {};
+            let totalNew = 0;
+            for (const s of symbols) {
+                newHold[s] = holdings[s] + trades[s];
+                newVal[s] = newHold[s] * prices[s];
+                totalNew += newVal[s];
+            }
+            const newWt = {};
+            for (const s of symbols) newWt[s] = newVal[s] / totalNew;
+
+            // Render results
+            const mode = cashFlow > 0 ? 'BUY' : 'SELL';
+            let tradeCost = 0;
+            for (const s of symbols) tradeCost += trades[s] * prices[s];
+
+            let h = '<div class="results">';
+            h += '<h2>Results</h2>';
+
+            // Summary
+            h += '<h3>Summary</h3>';
+            h += '<div class="line">Current value: ' + fmt(totalNow) + '</div>';
+            h += '<div class="line">Cash flow: ' + fmt(cashFlow) + '</div>';
+            h += '<div class="line">Target value: ' + fmt(totalGoal) + '</div>';
+
+            // Current Holdings
+            h += '<h3>Current Holdings</h3>';
+            for (const s of symbols) {
+                h += '<div class="line indent">' + s + ': ' + holdings[s] + ' shares @ ' + fmt(prices[s]) + ' = ' + fmt(curVal[s]) + ' (' + pct(curWt[s]) + ')</div>';
+            }
+
+            // Trades
+            h += '<h3>Trades</h3>';
+            let anyTrade = false;
+            for (const s of symbols) {
+                if (trades[s] === 0) continue;
+                anyTrade = true;
+                const cls = trades[s] > 0 ? 'buy' : 'sell';
+                const label = trades[s] > 0 ? 'BUY' : 'SELL';
+                h += '<div class="line indent ' + cls + '">' + label + ' ' + Math.abs(trades[s]) + ' ' + s + '</div>';
+            }
+            if (!anyTrade) h += '<div class="line indent">No trades needed.</div>';
+            h += '<div class="line">Total trade cost: ' + fmt(tradeCost) + '</div>';
+
+            // After
+            h += '<h3>After Rebalance</h3>';
+            for (const s of symbols) {
+                h += '<div class="line indent">' + s + ': ' + newHold[s] + ' shares @ ' + fmt(prices[s]) + ' = ' + fmt(newVal[s]) + ' (' + pct(newWt[s]) + ')</div>';
+            }
+            h += '<div class="line">Total portfolio value: ' + fmt(totalNew) + '</div>';
+
+            h += '</div>';
+            out.innerHTML = h;
+        }
+
+        function showErr(msg) {
+            document.getElementById('output').innerHTML = '<div class="error">' + msg + '</div>';
+        }
+    </script>
+</body>
+</html>
