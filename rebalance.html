@@ -131,6 +131,13 @@
 
         .add-row-btn:hover { background: #f7f6f3; }
 
+        .fetch-status {
+            font-size: 0.8rem;
+            color: #9b9a97;
+            margin-top: 0.4rem;
+            min-height: 1.2em;
+        }
+
         .cashflow-section {
             margin-top: 1.5rem;
             margin-bottom: 1.5rem;
@@ -262,6 +269,7 @@
             </div>
             <div id="rows"></div>
             <button class="add-row-btn" onclick="addRow()">+ Add Row</button>
+            <div class="fetch-status" id="fetchStatus"></div>
 
             <div class="cashflow-section">
                 <label for="cashflow">Cash Flow ($)</label>
@@ -289,11 +297,72 @@
                 '<button class="remove-btn" onclick="this.parentElement.remove()" title="Remove">\u00d7</button>';
             row.querySelector('.sym').addEventListener('blur', function () {
                 this.value = this.value.toUpperCase().trim();
+                autoFetch(row);
             });
             rowsDiv.appendChild(row);
+            return row;
         }
 
         addRow('VTI', null, null, 75); addRow('VXUS', null, null, 25);
+
+        // CNBC's public quote API sends CORS headers, needs no API key, and
+        // covers stocks, ETFs, and mutual funds by plain ticker symbol.
+        // TradingView's scanner API (also CORS-open, keyless) is the fallback;
+        // it requires an exchange prefix, so likely exchanges are tried in turn.
+        async function fetchPrice(sym) {
+            try {
+                const res = await fetch(
+                    'https://quote.cnbc.com/quote-html-webservice/restQuote/symbolType/symbol?symbols=' +
+                    encodeURIComponent(sym) + '&requestMethod=itv&noform=1&partnerId=2&output=json',
+                    { signal: AbortSignal.timeout(10000) });
+                if (res.ok) {
+                    const q = (await res.json()).FormattedQuoteResult.FormattedQuote[0];
+                    const price = parseFloat(String(q.last).replace(/,/g, ''));
+                    if (q.code === 0 && price > 0) return price;
+                }
+            } catch (e) { /* fall through to TradingView */ }
+
+            for (const exch of ['AMEX', 'NASDAQ', 'NYSE']) {
+                try {
+                    const res = await fetch(
+                        'https://scanner.tradingview.com/symbol?symbol=' +
+                        encodeURIComponent(exch + ':' + sym) + '&fields=close',
+                        { signal: AbortSignal.timeout(10000) });
+                    if (!res.ok) continue;
+                    const close = (await res.json()).close;
+                    if (close > 0) return close;
+                } catch (e) { /* try next exchange */ }
+            }
+            return null;
+        }
+
+        // Fetches a delayed quote for a row's symbol and fills its price field.
+        // Triggered when the symbol input loses focus, and on page load for
+        // prefilled rows. Skips re-fetching if the symbol hasn't changed.
+        async function autoFetch(row) {
+            const sym = row.querySelector('.sym').value.toUpperCase().trim();
+            const prInput = row.querySelector('.pr');
+            const status = document.getElementById('fetchStatus');
+            if (!sym || row.dataset.fetchedSym === sym) return;
+            row.dataset.fetchedSym = sym;
+
+            prInput.placeholder = 'fetching…';
+            const price = await fetchPrice(sym);
+
+            // Bail if the symbol changed or the row was removed while fetching
+            if (!row.isConnected || row.querySelector('.sym').value.toUpperCase().trim() !== sym) return;
+            prInput.placeholder = '0.00';
+
+            if (price) {
+                prInput.value = price;
+                status.textContent = 'Delayed quotes · updated ' + new Date().toLocaleTimeString();
+            } else {
+                delete row.dataset.fetchedSym;
+                status.textContent = 'No quote for ' + sym + ' — enter price manually.';
+            }
+        }
+
+        for (const r of rowsDiv.querySelectorAll('.holding-row')) autoFetch(r);
 
         function fmt(v) {
             return v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
